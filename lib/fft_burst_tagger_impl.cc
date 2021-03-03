@@ -221,6 +221,8 @@ namespace gr {
           // The burst might have started one FFT earlier
           b.start = d_index - d_burst_pre_len;
           b.last_active = b.start;
+          // Keep noise level around
+          b.noise = d_baseline_sum_f[b.center_bin] / d_history_size;
 
           d_bursts.push_back(b);
           d_new_bursts.push_back(b);
@@ -320,6 +322,7 @@ namespace gr {
         value = pmt::dict_add(value, pmt::mp("center_frequency"), pmt::from_float(d_center_frequency));
         value = pmt::dict_add(value, pmt::mp("magnitude"), pmt::from_float(b.magnitude));
         value = pmt::dict_add(value, pmt::mp("sample_rate"), pmt::from_float(d_sample_rate));
+        value = pmt::dict_add(value, pmt::mp("noise_floor"), pmt::from_float(b.noise));
 
         //printf("Tagging new burst %" PRIu64 " on sample %" PRIu64 " (nitems_read(0)=%" PRIu64 ")\n", b.id, b.start + d_burst_pre_len, nitems_read(0));
         add_item_tag(0, b.start, key, value);
