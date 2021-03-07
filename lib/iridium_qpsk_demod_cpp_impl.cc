@@ -312,6 +312,8 @@ namespace gr {
       uint64_t id = pmt::to_uint64(pmt::dict_ref(meta, pmt::mp("id"), pmt::PMT_NIL));
       double offset = pmt::to_double(pmt::dict_ref(meta, pmt::mp("offset"), pmt::PMT_NIL));
       double uw_start = pmt::to_float(pmt::dict_ref(meta, pmt::mp("uw_start"), pmt::PMT_NIL));
+      float magnitude = pmt::to_float(pmt::dict_ref(meta, pmt::mp("magnitude"), pmt::PMT_NIL));
+      float power = pmt::to_float(pmt::dict_ref(meta, pmt::mp("power"), pmt::PMT_NIL));
 
       int sps = sample_rate / 25000;
       double timestamp = (offset + uw_start) / (double)sample_rate;
@@ -359,6 +361,8 @@ namespace gr {
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("level"), pmt::mp(level));
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("n_symbols"), pmt::mp((int)n_symbols));
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("direction"), pmt::mp((int)(ul_uw_ok?1:0)));
+      pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("magnitude"), pmt::mp(magnitude));
+      pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("power"), pmt::mp(power));
 
       pmt::pmt_t out_msg = pmt::cons(pdu_meta,
           pdu_vector);

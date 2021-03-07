@@ -439,7 +439,7 @@ namespace gr {
 
     int
     burst_downmix_impl::process_next_frame(float sample_rate, float center_frequency,
-            double offset, uint64_t id, size_t burst_size, int start)
+            double offset, uint64_t id, size_t burst_size, int start, float magnitude, float power)
     {
       /*
        * Use the center frequency to make some assumptions about the burst.
@@ -649,6 +649,8 @@ namespace gr {
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("uw_start"), pmt::mp(correction));
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("offset"), pmt::mp(offset + start));
       pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("id"), pmt::mp(id));
+      pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("magnitude"), pmt::mp(magnitude));
+      pdu_meta = pmt::dict_add(pdu_meta, pmt::mp("power"), pmt::mp(power));
 
       if(d_debug) {
         printf("center_frequency=%f, uw_start=%u\n", center_frequency, uw_start);
@@ -676,6 +678,7 @@ namespace gr {
       float sample_rate = pmt::to_float(pmt::dict_ref(meta, pmt::mp("sample_rate"), pmt::PMT_NIL));
       uint64_t id = pmt::to_uint64(pmt::dict_ref(meta, pmt::mp("id"), pmt::PMT_NIL));
       double offset = pmt::to_double(pmt::dict_ref(meta, pmt::mp("offset"), pmt::PMT_NIL));
+      float magnitude = pmt::to_float(pmt::dict_ref(meta, pmt::mp("magnitude"), pmt::PMT_NIL));
 
       if(id == d_debug_id) {
         d_debug = true;
@@ -704,6 +707,10 @@ namespace gr {
         write_data_c(burst, burst_size, (char *)"signal", id);
       }
 
+      // compute power of the burst, which is the mean of the squares of each sample.
+      volk_32fc_magnitude_squared_32f(d_magnitude_f, burst, burst_size);
+      float power, stddev;
+      volk_32f_stddev_and_mean_32f_x2(&stddev, &power, d_magnitude_f, burst_size);
 
       /*
        * Shift the center frequency of the burst to the provided rough CFO estimate.
@@ -811,11 +818,11 @@ namespace gr {
         uint64_t new_id = id * 10;
         int handled_samples;
         do {
-            handled_samples = process_next_frame(sample_rate, center_frequency, offset, new_id++, burst_size, start);
+            handled_samples = process_next_frame(sample_rate, center_frequency, offset, new_id++, burst_size, start, magnitude, power);
             start += handled_samples;
         } while(d_handle_multiple_frames_per_burst && handled_samples > 0);
       } else {
-        process_next_frame(sample_rate, center_frequency, offset, id, burst_size, start);
+        process_next_frame(sample_rate, center_frequency, offset, id, burst_size, start, magnitude, power);
       }
 
       message_port_pub(pmt::mp("burst_handled"), pmt::mp(id));
